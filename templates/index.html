@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>食材選択</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+    .container {
+        margin-top: 50px;
+        display: flex;
+        gap: 20px;
+    }
+    .left-column, .right-column {
+        flex: 1;
+        background: #fff;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        overflow: auto;
+        max-height: 80vh;
+    }
+    h1 { text-align: center; }
+    .ingredient-item { margin-bottom: 10px; }
+    .selected-ingredient {
+        margin-bottom: 10px;
+        position: relative;
+        padding: 5px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+    }
+    .remove-btn {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: #dc3545;
+        color: #fff;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        line-height: 22px;
+        text-align: center;
+        cursor: pointer;
+    }
+    .remove-btn:hover {
+        background: #c82333;
+    }
+    .submit-btn {
+        margin-top: 20px;
+        display: block;
+        width: 100%;
+        background-color: #007bff;
+        color: white;
+        font-size: 1.2rem;
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        text-align: center;
+    }
+    .submit-btn:hover {
+        background-color: #0069d9;
+        color: white;
+    }
+    </style>
+</head>
+<body>
+
+<h1>食材選択・グラム入力</h1>
+<form method="POST" action="/calculate" id="ingredient-form">
+    <div class="container">
+        <!-- 左: 全食材リスト -->
+        <div class="left-column">
+            <h2>食材リスト</h2>
+            <input type="text" id="ingredient-search" class="form-control" placeholder="食材を検索...">
+
+            <div id="ingredient-list">
+            {% for ingredient in ingredients %}
+            <div class="ingredient-item" data-name="{{ ingredient.name }}">
+                <input type="checkbox" class="ingredient-checkbox" value="{{ ingredient.id }}" data-name="{{ ingredient.name }}">
+                <label>{{ ingredient.name }}</label>
+            </div>
+            {% endfor %}
+            </div>
+        </div>
+
+        <!-- 右: 選択された食材のみ表示＆グラム入力 -->
+        <div class="right-column">
+            <h2>選択された食材</h2>
+            <div id="selected-ingredients">
+                <!-- 動的に選択した食材がここへ表示される -->
+            </div>
+            <button type="submit" class="submit-btn">計算する</button>
+        </div>
+    </div>
+</form>
+
+<script>
+    const ingredientCheckboxes = document.querySelectorAll('.ingredient-checkbox');
+    const selectedIngredientsDiv = document.getElementById('selected-ingredients');
+    const searchInput = document.getElementById('ingredient-search');
+    const ingredientItems = document.querySelectorAll('.ingredient-item');
+
+    ingredientCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedIngredients);
+    });
+
+    function updateSelectedIngredients() {
+        selectedIngredientsDiv.innerHTML = '';
+        const selectedOptions = Array.from(ingredientCheckboxes).filter(cb => cb.checked);
+
+        selectedOptions.forEach(option => {
+            const ingredientId = option.value;
+            const ingredientName = option.getAttribute('data-name');
+            const div = document.createElement('div');
+            div.classList.add('selected-ingredient');
+            div.innerHTML = `
+                <button type="button" class="remove-btn" data-id="${ingredientId}">×</button>
+                <strong>${ingredientName}</strong><br>
+                <label for="grams_${ingredientId}">グラム数:</label>
+                <input type="number" name="grams_${ingredientId}" min="0.1" step="0.1" value="100"> g
+                <input type="hidden" name="ingredient_ids" value="${ingredientId}">
+            `;
+            selectedIngredientsDiv.appendChild(div);
+        });
+
+        // 解除ボタンにイベントリスナーを付ける
+        const removeButtons = selectedIngredientsDiv.querySelectorAll('.remove-btn');
+        removeButtons.forEach(btn => {
+            btn.addEventListener('click', removeSelectedIngredient);
+        });
+    }
+
+    function removeSelectedIngredient(e) {
+        const ingredientId = e.target.getAttribute('data-id');
+        // 左カラムのcheckboxをuncheckedにする
+        const checkbox = Array.from(ingredientCheckboxes).find(cb => cb.value === ingredientId);
+        if (checkbox) {
+            checkbox.checked = false;
+        }
+        updateSelectedIngredients();
+    }
+
+    // 検索機能
+    searchInput.addEventListener('keyup', function() {
+        const query = searchInput.value.toLowerCase();
+        ingredientItems.forEach(item => {
+            const name = item.getAttribute('data-name').toLowerCase();
+            if (name.includes(query)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    });
+</script>
+</body>
+</html>
